@@ -1,4 +1,8 @@
-use std::io;
+use std::process::Command;
+use std::{
+    io::{self, Write},
+    vec,
+};
 
 #[derive(Debug)]
 struct Contact {
@@ -7,11 +11,25 @@ struct Contact {
     email: Option<String>,
 }
 
+fn clear_terminal() {
+    if cfg!(target_os = "windows") {
+        Command::new("cmd").args(&["/C", "cls"]).status().unwrap();
+    } else {
+        Command::new("clear").status().unwrap();
+    }
+}
+
+fn pause() {
+    let _ = io::stdin().read_line(&mut String::new());
+    print!("(Press Enter to continue)");
+    io::stdout().flush().unwrap();
+}
+
 fn main() {
-    display_menu();
-    add_contact();
+    let mut contacts: Vec<Contact> = vec![];
 
     loop {
+        display_menu();
         let mut choice = String::new();
 
         io::stdin()
@@ -27,15 +45,17 @@ fn main() {
         };
 
         match choice {
-            1 => some_fn(),
-            2 => some_fn(),
-            3 => some_fn(),
-            4 => some_fn(),
+            1 => add_contact(&mut contacts),
+            2 => view_contacts(&contacts),
+            3 => search_contact(&contacts),
+            4 => delete_contact(&mut contacts),
             5 => break,
             _ => {
                 println!("Please enter a valid number!");
             }
         }
+
+        clear_terminal();
     }
 }
 
@@ -49,47 +69,108 @@ fn display_menu() {
         "1. Add contact \n2. View contacts \n3. Search contact \n4. Delete contact \n5. Exit \n"
     );
 
-    println!("Enter your choice: ");
+    print!("Enter your choice: ");
+    io::stdout().flush().unwrap();
 }
 
-fn some_fn() {
-    return;
-}
+fn add_contact(contacts: &mut Vec<Contact>) {
+    let mut name = String::new();
+    let mut phone = String::new();
+    let mut email = String::new();
 
-fn add_contact() {
-    let mut contact = Contact {
-        name: String::new(),
-        phone: String::new(),
-        email: Some(String::new())
-    };
-    
-    println!("Enter details: ");
+    println!("\nEnter details: ");
 
     print!("Name: ");
+    io::stdout().flush().unwrap();
     io::stdin()
-        .read_line(&mut contact.name)
+        .read_line(&mut name)
         .expect("Please enter a valid name");
-    contact.name = String::from(contact.name.trim());
 
     print!("Phone: ");
+    io::stdout().flush().unwrap();
     io::stdin()
-        .read_line(&mut contact.phone)
+        .read_line(&mut phone)
         .expect("Please enter a valid name");
-    contact.phone = String::from(contact.phone.trim());
 
-    let mut temp_email = String::new();
     print!("Email: ");
+    io::stdout().flush().unwrap();
     io::stdin()
-        .read_line(&mut temp_email)
+        .read_line(&mut email)
         .expect("Please enter a valid name");
-    temp_email = String::from(temp_email.trim());
 
-    if temp_email != "" {
-        contact.email = Some(temp_email);
-    }
-    else {
-        contact.email = None
+    let contact = Contact {
+        name: name.trim().to_string(),
+        phone: phone.trim().to_string(),
+        email: {
+            let trimmed_email = email.trim();
+
+            if trimmed_email.is_empty() {
+                None
+            } else {
+                Some(trimmed_email.to_string())
+            }
+        },
+    };
+
+    contacts.push(contact);
+    println!("\nContact added successfully\n");
+
+    pause();
+}
+
+fn view_contacts(contacts: &Vec<Contact>) {
+    println!("\nAll Contacts:");
+    for (index, contact) in contacts.iter().enumerate() {
+        println!(
+            "{}. Name: {} | Phone: {} | Email: {}",
+            index,
+            contact.name,
+            contact.phone,
+            match &contact.email {
+                None => String::from("Not Set"),
+                Some(email) => email.to_string(),
+            }
+        )
     }
 
-    println!("Contact added: {:#?}", contact);
+    pause();
+}
+
+fn search_contact(contacts: &Vec<Contact>) {
+
+}
+
+fn delete_contact(contacts: &mut Vec<Contact>) {
+    view_contacts(contacts);
+
+    print!("Please enter the index of the contact to delete: ");
+    io::stdout().flush().unwrap();
+
+    let mut index = String::new();
+
+    io::stdin()
+        .read_line(&mut index)
+        .expect("Failed to read line!");
+
+    let index: Option<usize> = match index.trim().parse() {
+        Ok(num) => Some(num),
+        Err(_) => {
+            println!("Please enter a number!");
+            None
+        }
+    };
+
+    match index {
+        None => println!("An error occured!"),
+        Some(num) => {
+            if num > contacts.len() - 1 {
+                println!("Invalid index!! Please try again.");
+            } else {
+                contacts.remove(num);
+                println!("\nContact deleted successfully!");
+            }
+        }
+    }
+
+    pause();
 }
