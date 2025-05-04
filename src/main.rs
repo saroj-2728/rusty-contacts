@@ -20,9 +20,9 @@ fn clear_terminal() {
 }
 
 fn pause() {
-    let _ = io::stdin().read_line(&mut String::new());
     print!("(Press Enter to continue)");
     io::stdout().flush().unwrap();
+    let _ = io::stdin().read_line(&mut String::new());
 }
 
 fn main() {
@@ -40,6 +40,8 @@ fn main() {
             Ok(num) => num,
             Err(_) => {
                 println!("Please enter a number!");
+                pause();
+                clear_terminal();
                 continue;
             }
         };
@@ -52,6 +54,8 @@ fn main() {
             5 => break,
             _ => {
                 println!("Please enter a valid number!");
+                pause();
+                clear_terminal();
             }
         }
 
@@ -133,11 +137,47 @@ fn view_contacts(contacts: &Vec<Contact>) {
         )
     }
 
+    println!();
     pause();
 }
 
 fn search_contact(contacts: &Vec<Contact>) {
+    let mut search_query = String::new();
 
+    print!("\nEnter the name or partial name to search: ");
+    io::stdout().flush().unwrap();
+
+    io::stdin()
+        .read_line(&mut search_query)
+        .expect("Failed to read line!");
+
+    println!();
+
+    let search_query = search_query.trim().to_lowercase();
+    let mut found = false;
+
+    println!("Matching contacts: ");
+    for contact in contacts {
+        if contact.name.to_lowercase().contains(&search_query) {
+            println!(
+                "Name: {} | Phone: {} | Email: {}",
+                contact.name,
+                contact.phone,
+                match &contact.email {
+                    None => String::from("Not Set"),
+                    Some(email) => email.to_string(),
+                }
+            );
+            found = true;
+        }
+    }
+
+    if !found {
+        println!("No contact found matching '{}'", search_query);
+    }
+
+    println!();
+    pause();
 }
 
 fn delete_contact(contacts: &mut Vec<Contact>) {
@@ -155,7 +195,7 @@ fn delete_contact(contacts: &mut Vec<Contact>) {
     let index: Option<usize> = match index.trim().parse() {
         Ok(num) => Some(num),
         Err(_) => {
-            println!("Please enter a number!");
+            println!("\nPlease enter a number!");
             None
         }
     };
@@ -164,7 +204,7 @@ fn delete_contact(contacts: &mut Vec<Contact>) {
         None => println!("An error occured!"),
         Some(num) => {
             if num > contacts.len() - 1 {
-                println!("Invalid index!! Please try again.");
+                println!("\nInvalid index!! Please try again.");
             } else {
                 contacts.remove(num);
                 println!("\nContact deleted successfully!");
